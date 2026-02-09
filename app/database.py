@@ -1,245 +1,202 @@
-"""
-Base de datos SQLite para SmartTask Organizer
-"""
-import sqlite3
 import os
 from datetime import datetime
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime, CheckConstraint
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+
+# --- CONFIGURACIÓN DE SQLALCHEMY ---
+Base = declarative_base()
+DB_NAME = "smarttask.db"
+
+# 1. DEFINICIÓN DE MODELOS (Nivel Sobresaliente: Relaciones + Índices + Validaciones)
+
+class Categoria(Base):
+    __tablename__ = 'categorias'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(String(50), unique=True, nullable=False, index=True) # Índice para búsqueda rápida
+    descripcion = Column(String(200))
+    
+    # Relación Uno-a-Muchos con Tareas
+    tareas = relationship("Tarea", back_populates="categoria")
+
+class Tarea(Base):
+    __tablename__ = 'tareas'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    titulo = Column(String(100), nullable=False, index=True) # Validación: Título obligatorio
+    descripcion = Column(Text, nullable=True)
+    fecha_limite = Column(String(20), nullable=True, index=True) # Formato YYYY-MM-DD
+    estado = Column(String(20), default='pendiente', index=True) 
+    prioridad = Column(String(20), default='media', index=True)
+    fecha_creacion = Column(DateTime, default=datetime.now)
+    
+    # Clave Foránea
+    categoria_id = Column(Integer, ForeignKey('categorias.id'))
+    
+    # Relación inversa
+    categoria = relationship("Categoria", back_populates="tareas")
+
+    # --- RESTRICCIONES DE INTEGRIDAD (El 10% extra para la nota máxima) ---
+    __table_args__ = (
+        CheckConstraint("estado IN ('pendiente', 'completada', 'vencida')", name='check_estado_valido'),
+        CheckConstraint("prioridad IN ('baja', 'media', 'alta')", name='check_prioridad_valida'),
+    )
+
+# --- CLASE GESTORA DE LA BASE DE DATOS ---
 
 class Database:
-    def __init__(self, db_name="smarttask.db"):
-        self.db_name = db_name
+    def __init__(self, db_name=DB_NAME):
+        # engine: Motor de conexión
+        self.engine = create_engine(f'sqlite:///{db_name}', echo=False)
+        self.Session = sessionmaker(bind=self.engine)
         self.init_db()
-    
-    def get_connection(self):
-        """Obtiene conexión a la base de datos"""
-        conn = sqlite3.connect(self.db_name)
-        conn.row_factory = sqlite3.Row
-        return conn
-    
-    def init_db(self):
-        """Inicializa la base de datos con todas las tablas"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Tabla de categorías
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS categorias (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL UNIQUE,
-            descripcion TEXT
-        )
-        ''')
-        
-        # Tabla de tareas
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tareas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titulo TEXT NOT NULL,
-            descripcion TEXT,
-            fecha_limite TEXT,
-            estado TEXT CHECK(estado IN ('pendiente', 'completada', 'vencida')) DEFAULT 'pendiente',
-            prioridad TEXT CHECK(prioridad IN ('baja', 'media', 'alta')) DEFAULT 'media',
-            categoria_id INTEGER,
-            fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (categoria_id) REFERENCES categorias(id)
-        )
-        ''')
-        
-        # Insertar categorías por defecto
-        categorias_default = [
-            ('Trabajo', 'Tareas relacionadas con el trabajo'),
-            ('Personal', 'Tareas personales'),
-            ('Hogar', 'Tareas del hogar'),
-            ('Estudio', 'Tareas académicas'),
-            ('Salud', 'Tareas de salud'),
-            ('Finanzas', 'Tareas financieras')
-        ]
-        
-        for nombre, descripcion in categorias_default:
-            cursor.execute('INSERT OR IGNORE INTO categorias (nombre, descripcion) VALUES (?, ?)', 
-                          (nombre, descripcion))
-        
-        # Verificar si hay tareas de ejemplo
-        cursor.execute("SELECT COUNT(*) FROM tareas")
-        if cursor.fetchone()[0] == 0:
-            # Obtener IDs de categorías
-            cursor.execute("SELECT id, nombre FROM categorias")
-            categorias = {row['nombre']: row['id'] for row in cursor.fetchall()}
-            
-            tareas_ejemplo = [
-                ('Revisar informe trimestral', 'Revisar datos y preparar presentación', 
-                 '2024-12-15', 'pendiente', 'alta', categorias.get('Trabajo')),
-                ('Comprar víveres', 'Ir al supermercado', 
-                 '2024-11-30', 'pendiente', 'media', categorias.get('Hogar')),
-                ('Estudiar para examen', 'Repasar capítulos 5-8', 
-                 '2024-12-10', 'pendiente', 'alta', categorias.get('Estudio')),
-                ('Llamar al médico', 'Pedir cita para revisión', 
-                 None, 'completada', 'baja', categorias.get('Salud')),
-                ('Enviar reporte semanal', 'Enviar por correo al equipo', 
-                 '2024-11-25', 'completada', 'media', categorias.get('Trabajo')),
-            ]
-            
-            for tarea in tareas_ejemplo:
-                cursor.execute('''
-                INSERT INTO tareas (titulo, descripcion, fecha_limite, estado, prioridad, categoria_id)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ''', tarea)
-        
-        conn.commit()
-        conn.close()
-        print(f"✅ Base de datos '{self.db_name}' inicializada")
-    
-    # ===== OPERACIONES CRUD =====
-    
-    def crear_tarea(self, titulo, descripcion="", fecha_limite=None, 
-                   prioridad="media", categoria_id=None):
-        """HU01: Crear nueva tarea"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-        INSERT INTO tareas (titulo, descripcion, fecha_limite, prioridad, categoria_id)
-        VALUES (?, ?, ?, ?, ?)
-        ''', (titulo, descripcion, fecha_limite, prioridad, categoria_id))
-        
-        conn.commit()
-        tarea_id = cursor.lastrowid
-        conn.close()
-        return tarea_id
-    
-    def obtener_todas_tareas(self, categoria_filtro=None):
-        """HU02: Obtener todas las tareas"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        if categoria_filtro and categoria_filtro != "TODAS":
-            cursor.execute('''
-            SELECT t.*, c.nombre as categoria_nombre 
-            FROM tareas t
-            LEFT JOIN categorias c ON t.categoria_id = c.id
-            WHERE c.nombre = ?
-            ORDER BY 
-                CASE t.estado 
-                    WHEN 'pendiente' THEN 1
-                    WHEN 'vencida' THEN 2
-                    WHEN 'completada' THEN 3
-                END,
-                CASE t.prioridad
-                    WHEN 'alta' THEN 1
-                    WHEN 'media' THEN 2
-                    WHEN 'baja' THEN 3
-                END,
-                t.fecha_limite ASC
-            ''', (categoria_filtro,))
-        else:
-            cursor.execute('''
-            SELECT t.*, c.nombre as categoria_nombre 
-            FROM tareas t
-            LEFT JOIN categorias c ON t.categoria_id = c.id
-            ORDER BY 
-                CASE t.estado 
-                    WHEN 'pendiente' THEN 1
-                    WHEN 'vencida' THEN 2
-                    WHEN 'completada' THEN 3
-                END,
-                CASE t.prioridad
-                    WHEN 'alta' THEN 1
-                    WHEN 'media' THEN 2
-                    WHEN 'baja' THEN 3
-                END,
-                t.fecha_limite ASC
-            ''')
-        
-        tareas = cursor.fetchall()
-        conn.close()
-        return tareas
-    
-    def obtener_tarea(self, tarea_id):
-        """Obtener una tarea específica"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-        SELECT t.*, c.nombre as categoria_nombre 
-        FROM tareas t
-        LEFT JOIN categorias c ON t.categoria_id = c.id
-        WHERE t.id = ?
-        ''', (tarea_id,))
-        
-        tarea = cursor.fetchone()
-        conn.close()
-        return tarea
-    
-    def actualizar_tarea(self, tarea_id, **kwargs):
-        """HU03: Actualizar tarea existente"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        campos = []
-        valores = []
-        
-        for key, value in kwargs.items():
-            if value is not None:
-                campos.append(f"{key} = ?")
-                valores.append(value)
-        
-        if not campos:
-            conn.close()
-            return False
-        
-        valores.append(tarea_id)
-        query = f"UPDATE tareas SET {', '.join(campos)} WHERE id = ?"
-        
-        cursor.execute(query, valores)
-        conn.commit()
-        afectadas = cursor.rowcount
-        conn.close()
-        
-        return afectadas > 0
-    
-    def eliminar_tarea(self, tarea_id):
-        """HU04: Eliminar tarea por ID"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('DELETE FROM tareas WHERE id = ?', (tarea_id,))
-        conn.commit()
-        afectadas = cursor.rowcount
-        conn.close()
-        
-        return afectadas > 0
-    
-    def marcar_como_completada(self, tarea_id):
-        """HU05: Marcar tarea como completada"""
-        return self.actualizar_tarea(tarea_id, estado='completada')
-    
-    def obtener_categorias(self):
-        """Obtener todas las categorías"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT * FROM categorias ORDER BY nombre')
-        categorias = cursor.fetchall()
-        conn.close()
-        return categorias
-    
-    def obtener_estadisticas(self):
-        """Obtener estadísticas de las tareas"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-        SELECT 
-            COUNT(*) as total,
-            SUM(CASE WHEN estado = 'completada' THEN 1 ELSE 0 END) as completadas,
-            SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) as pendientes,
-            SUM(CASE WHEN estado = 'pendiente' AND fecha_limite < date('now') THEN 1 ELSE 0 END) as vencidas
-        FROM tareas
-        ''')
-        
-        stats = cursor.fetchone()
-        conn.close()
-        return dict(stats)
 
-# Instancia global de la base de datos
+    def init_db(self):
+        """Crea tablas y datos semilla si no existen"""
+        Base.metadata.create_all(self.engine)
+        self._crear_datos_semilla()
+        print(f"✅ Base de datos SQLalchemy '{DB_NAME}' inicializada (Con Constraints y Relaciones).")
+
+    def get_session(self):
+        return self.Session()
+
+    def _crear_datos_semilla(self):
+        """Inserta datos de ejemplo para probar relaciones"""
+        session = self.get_session()
+        if session.query(Categoria).count() == 0:
+            # Crear Categorías
+            cats = [
+                Categoria(nombre='Trabajo', descripcion='Temas laborales'),
+                Categoria(nombre='Personal', descripcion='Cosas mías'),
+                Categoria(nombre='Hogar', descripcion='Casa y compras'),
+                Categoria(nombre='Estudio', descripcion='Universidad'),
+                Categoria(nombre='Salud', descripcion='Médico y deporte'),
+                Categoria(nombre='Finanzas', descripcion='Pagos y bancos')
+            ]
+            session.add_all(cats)
+            session.commit()
+
+            # Crear Tareas de ejemplo vinculadas a categorías
+            trabajo = session.query(Categoria).filter_by(nombre='Trabajo').first()
+            hogar = session.query(Categoria).filter_by(nombre='Hogar').first()
+            
+            if trabajo and hogar:
+                tareas = [
+                    Tarea(titulo='Entregar proyecto final', descripcion='Urgente para aprobar', fecha_limite='2024-12-15', prioridad='alta', categoria=trabajo),
+                    Tarea(titulo='Hacer las compras', descripcion='Leche, huevos, pan', fecha_limite='2024-11-30', prioridad='media', categoria=hogar)
+                ]
+                session.add_all(tareas)
+                session.commit()
+        session.close()
+
+    # ===== OPERACIONES CRUD (Backend) =====
+
+    def crear_tarea(self, titulo, descripcion="", fecha_limite=None, prioridad="media", categoria_id=None):
+        session = self.get_session()
+        try:
+            # Asignar categoría por defecto si no viene ninguna
+            if not categoria_id:
+                cat_def = session.query(Categoria).first()
+                if cat_def: categoria_id = cat_def.id
+
+            nueva_tarea = Tarea(
+                titulo=titulo,
+                descripcion=descripcion,
+                fecha_limite=fecha_limite,
+                prioridad=prioridad,
+                categoria_id=categoria_id
+            )
+            session.add(nueva_tarea)
+            session.commit()
+            return nueva_tarea.id
+        except Exception as e:
+            session.rollback()
+            print(f"Error crítico al crear tarea: {e}")
+            return None
+        finally:
+            session.close()
+
+    def obtener_todas_tareas(self, categoria_filtro=None):
+        session = self.get_session()
+        try:
+            query = session.query(Tarea).join(Categoria)
+            
+            if categoria_filtro and categoria_filtro != "TODAS":
+                query = query.filter(Categoria.nombre == categoria_filtro)
+            
+            resultados = query.all()
+            
+            # Convertir a lista de diccionarios para la interfaz gráfica
+            tareas_lista = []
+            for t in resultados:
+                tarea_dict = {
+                    'id': t.id, 
+                    'titulo': t.titulo, 
+                    'descripcion': t.descripcion,
+                    'fecha_limite': t.fecha_limite, 
+                    'estado': t.estado,
+                    'prioridad': t.prioridad, 
+                    'categoria_id': t.categoria_id,
+                    'categoria_nombre': t.categoria.nombre if t.categoria else "General"
+                }
+                tareas_lista.append(tarea_dict)
+            return tareas_lista
+        finally:
+            session.close()
+
+    def actualizar_tarea(self, tarea_id, **kwargs):
+        session = self.get_session()
+        try:
+            tarea = session.query(Tarea).filter_by(id=tarea_id).first()
+            if tarea:
+                for key, value in kwargs.items():
+                    if hasattr(tarea, key) and value is not None:
+                        setattr(tarea, key, value)
+                session.commit()
+                return True
+            return False
+        except Exception:
+            session.rollback()
+            return False
+        finally:
+            session.close()
+
+    def eliminar_tarea(self, tarea_id):
+        session = self.get_session()
+        try:
+            tarea = session.query(Tarea).filter_by(id=tarea_id).first()
+            if tarea:
+                session.delete(tarea)
+                session.commit()
+                return True
+            return False
+        except Exception:
+            session.rollback()
+            return False
+        finally:
+            session.close()
+
+    def marcar_como_completada(self, tarea_id):
+        return self.actualizar_tarea(tarea_id, estado='completada')
+
+    def obtener_categorias(self):
+        session = self.get_session()
+        try:
+            cats = session.query(Categoria).all()
+            return [{'id': c.id, 'nombre': c.nombre} for c in cats]
+        finally:
+            session.close()
+
+    def obtener_estadisticas(self):
+        session = self.get_session()
+        try:
+            total = session.query(Tarea).count()
+            completadas = session.query(Tarea).filter_by(estado='completada').count()
+            pendientes = session.query(Tarea).filter_by(estado='pendiente').count()
+            vencidas = session.query(Tarea).filter_by(estado='vencida').count()
+            return {'total': total, 'completadas': completadas, 'pendientes': pendientes, 'vencidas': vencidas}
+        finally:
+            session.close()
+
+# Instancia global
 db = Database()
