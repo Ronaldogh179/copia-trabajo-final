@@ -1,5 +1,4 @@
 # 📂 Documentación de Gestión y Herramientas
-> Evidencia para Competencias 11 (Gestión de Proyectos) y 14 (Herramientas Modernas)
 
 ---
 
