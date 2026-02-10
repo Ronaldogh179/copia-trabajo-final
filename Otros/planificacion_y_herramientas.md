@@ -50,3 +50,7 @@ Se identificaron y compararon herramientas apropiadas:
 * **Control de Versiones: Git/GitHub**
     * *Selección:* **Git Flow**.
     * *Razón:* Permite trabajo colaborativo mediante ramas (`feature/`, `main`), evitando conflictos de código entre los 4 integrantes.
+* **Framework de Interfaz: Tkinter vs Reflex**
+    * *Selección:* **Tkinter**.
+    * *Razón:* Tkinter es nativo de Python y permite generar ejecutables (.exe) que funcionan 100% offline sin dependencias web, cumpliendo el requisito de portabilidad en zonas rurales.
+    * *Descartado:* **Reflex**. Se evaluó, pero se descartó porque requiere un navegador web y conexión para su despliegue óptimo, lo cual no se alineaba con la arquitectura de escritorio local.
