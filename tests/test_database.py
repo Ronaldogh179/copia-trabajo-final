@@ -13,18 +13,19 @@ class TestSmartTaskDB(unittest.TestCase):
     =================================================================
     8.1 Desarrollo de Experimentos:
         - Objetivo: Verificar la integridad transaccional (ACID) y las restricciones de la BD.
-        - Principios: Aislamiento de pruebas (cada prueba crea su propia BD en memoria).
-        - Recursos: Librería 'unittest' de Python y motor SQLite.
-        - Procedimiento: Setup -> Ejecución -> Validación (Assert) -> Teardown.
+        - Principios: Aislamiento de pruebas (Clean Slate) y Atomicidad.
+        - Recursos: Framework 'unittest' de Python, Motor SQLite en memoria (:memory:).
+        - Procedimiento: Setup (Configuración) -> Ejecución -> Validación (Assert) -> Teardown (Limpieza).
     
     8.2 Análisis de Resultados:
-        - Validación mediante aserciones estrictas (AssertEqual, AssertIsNotNone).
+        - Clasificación: Se separan pruebas Positivas (Flujo ideal) y Negativas (Control de errores).
+        - Validación: Uso de aserciones estrictas (AssertEqual, AssertIsNone) para confirmar resultados.
     =================================================================
     """
 
     def setUp(self):
         """Procedimiento: Configuración inicial antes de cada prueba (Clean Slate)."""
-        # Usamos :memory: para no afectar la base de datos real del usuario
+        # Usamos :memory: para crear una BD volátil aislada para cada test
         self.db = Database(':memory:')
         self.session = self.db.get_session()
         self.engine = self.db.engine
@@ -34,47 +35,48 @@ class TestSmartTaskDB(unittest.TestCase):
         self.session.close()
         Base.metadata.drop_all(self.engine)
 
-    # --- EXPERIMENTO 1: Creación Exitosa ---
+    # --- EXPERIMENTO 1: Flujo Positivo (Creación) ---
     def test_crear_tarea_exitosamente(self):
-        """Prueba que valida la inserción correcta de datos (Positive Test)."""
+        """Valida que el sistema acepta datos correctos y genera persistencia."""
         tarea_id = self.db.crear_tarea("Estudiar Python", "Para el examen", "2026-02-28", "alta")
         
-        # Validación de Resultados
-        self.assertIsNotNone(tarea_id, "El ID de la tarea no debería ser None")
+        # Validación de Resultados (8.2)
+        self.assertIsNotNone(tarea_id, "El ID de la tarea no debería ser None (Fallo de persistencia)")
         
-        # Verificación en BD
+        # Verificación profunda en BD
         session = self.db.get_session()
         tarea = session.query(Tarea).filter_by(id=tarea_id).first()
-        self.assertEqual(tarea.titulo, "Estudiar Python", "El título guardado no coincide")
+        self.assertEqual(tarea.titulo, "Estudiar Python", "El título guardado no coincide con el enviado")
         session.close()
 
-    # --- EXPERIMENTO 2: Restricciones de Integridad ---
+    # --- EXPERIMENTO 2: Flujo Negativo (Restricciones) ---
     def test_impedir_titulo_vacio(self):
-        """Prueba que valida el rechazo de datos inválidos (Negative Test)."""
+        """Valida que el sistema rechaza datos incompletos (Constraint Check)."""
         # Objetivo: Asegurar que el sistema no acepte tareas sin título
         tarea_id = self.db.crear_tarea("", "Descripción sin título")
         
-        # Validación: El sistema debe devolver None (rechazo)
-        self.assertIsNone(tarea_id, "El sistema debería rechazar un título vacío")
+        # Validación: El sistema debe devolver None indicando rechazo
+        self.assertIsNone(tarea_id, "El sistema debería haber rechazado un título vacío")
 
-    # --- EXPERIMENTO 3: Eliminación de Datos ---
+    # --- EXPERIMENTO 3: Ciclo de Vida (Eliminación) ---
     def test_eliminar_tarea(self):
-        """Prueba de ciclo de vida completo (Crear -> Eliminar)."""
+        """Prueba de integridad al eliminar registros."""
         tid = self.db.crear_tarea("Tarea a borrar")
         eliminado = self.db.eliminar_tarea(tid)
         
         self.assertTrue(eliminado, "La función eliminar debería retornar True")
         
-        # Validación: Buscar la tarea y confirmar que ya no existe
+        # Validación: Confirmar que ya no existe en la BD
         session = self.db.get_session()
         tarea = session.query(Tarea).filter_by(id=tid).first()
-        self.assertIsNone(tarea, "La tarea debería haber desaparecido de la BD")
+        self.assertIsNone(tarea, "La tarea debería haber desaparecido de la BD tras eliminarla")
         session.close()
 
-    # --- EXPERIMENTO 4: Actualización de Datos ---
+    # --- EXPERIMENTO 4: Modificación de Estado ---
     def test_actualizar_tarea(self):
-        """Prueba de modificación de estado y persistencia."""
-        tid = self.db.crear_tarea("Viejo Nombre", priority="baja")
+        """Prueba de actualización de campos específicos."""
+        # CORRECCIÓN AQUÍ: 'priority' cambiado a 'prioridad'
+        tid = self.db.crear_tarea("Viejo Nombre", prioridad="baja")
         
         # Acción: Cambiar datos
         self.db.actualizar_tarea(tid, titulo="Nuevo Nombre", prioridad="alta")
