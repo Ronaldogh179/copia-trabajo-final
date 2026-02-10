@@ -6,9 +6,7 @@
 
 ### 11.1 Diseño del Proyecto (Propuesta Preliminar)
 **Necesidad Identificada:**
-Los estudiantes universitarios enfrentan dificultades para organizar tareas académicas dispersas, lo que ocasiona entregas tardías y estrés.
-**Propuesta de Solución:**
-Desarrollar "SmartTask Organizer", una aplicación de escritorio ligera, sin dependencia de internet, que permita gestión CRUD (Crear, Leer, Actualizar, Eliminar) de tareas con persistencia local segura.
+Los estudiantes universitarios enfrentan dificultades para organizar tareas académicas dispersas, lo que ocasiona entregas tardías y estrés. **Propuesta de Solución:** Desarrollar "SmartTask Organizer", una aplicación de escritorio ligera, sin dependencia de internet, que permita gestión CRUD (Crear, Leer, Actualizar, Eliminar) de tareas con persistencia local segura.
 
 ### 11.2 Planificación de la Gestión (Categorización de Recursos)
 Para llevar a cabo las actividades identificadas, se han categorizado los siguientes recursos:
