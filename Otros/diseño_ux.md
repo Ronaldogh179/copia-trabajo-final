@@ -1,5 +1,4 @@
 # 🎨 Diseño de Experiencia de Usuario (UX) y Requisitos
-> Evidencia para el punto 4 del incremento de producto (Historias y Wireframes)
 
 ---
 
