@@ -13,30 +13,26 @@ class Categoria(Base):
     __tablename__ = 'categorias'
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    nombre = Column(String(50), unique=True, nullable=False, index=True) # Índice para búsqueda rápida
+    nombre = Column(String(50), unique=True, nullable=False, index=True) 
     descripcion = Column(String(200))
     
-    # Relación Uno-a-Muchos con Tareas
     tareas = relationship("Tarea", back_populates="categoria")
 
 class Tarea(Base):
     __tablename__ = 'tareas'
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    titulo = Column(String(100), nullable=False, index=True) # Validación: Título obligatorio
+    titulo = Column(String(100), nullable=False, index=True)
     descripcion = Column(Text, nullable=True)
-    fecha_limite = Column(String(20), nullable=True, index=True) # Formato YYYY-MM-DD
+    fecha_limite = Column(String(20), nullable=True, index=True)
     estado = Column(String(20), default='pendiente', index=True) 
     prioridad = Column(String(20), default='media', index=True)
     fecha_creacion = Column(DateTime, default=datetime.now)
     
-    # Clave Foránea
     categoria_id = Column(Integer, ForeignKey('categorias.id'))
     
-    # Relación inversa
     categoria = relationship("Categoria", back_populates="tareas")
 
-    # --- RESTRICCIONES DE INTEGRIDAD (El 10% extra para la nota máxima) ---
     __table_args__ = (
         CheckConstraint("estado IN ('pendiente', 'completada', 'vencida')", name='check_estado_valido'),
         CheckConstraint("prioridad IN ('baja', 'media', 'alta')", name='check_prioridad_valida'),
@@ -46,25 +42,20 @@ class Tarea(Base):
 
 class Database:
     def __init__(self, db_name=DB_NAME):
-        # engine: Motor de conexión
         self.engine = create_engine(f'sqlite:///{db_name}', echo=False)
         self.Session = sessionmaker(bind=self.engine)
         self.init_db()
 
     def init_db(self):
-        """Crea tablas y datos semilla si no existen"""
         Base.metadata.create_all(self.engine)
         self._crear_datos_semilla()
-        print(f"✅ Base de datos SQLalchemy '{DB_NAME}' inicializada (Con Constraints y Relaciones).")
 
     def get_session(self):
         return self.Session()
 
     def _crear_datos_semilla(self):
-        """Inserta datos de ejemplo para probar relaciones"""
         session = self.get_session()
         if session.query(Categoria).count() == 0:
-            # Crear Categorías
             cats = [
                 Categoria(nombre='Trabajo', descripcion='Temas laborales'),
                 Categoria(nombre='Personal', descripcion='Cosas mías'),
@@ -75,26 +66,18 @@ class Database:
             ]
             session.add_all(cats)
             session.commit()
-
-            # Crear Tareas de ejemplo vinculadas a categorías
-            trabajo = session.query(Categoria).filter_by(nombre='Trabajo').first()
-            hogar = session.query(Categoria).filter_by(nombre='Hogar').first()
-            
-            if trabajo and hogar:
-                tareas = [
-                    Tarea(titulo='Entregar proyecto final', descripcion='Urgente para aprobar', fecha_limite='2024-12-15', prioridad='alta', categoria=trabajo),
-                    Tarea(titulo='Hacer las compras', descripcion='Leche, huevos, pan', fecha_limite='2024-11-30', prioridad='media', categoria=hogar)
-                ]
-                session.add_all(tareas)
-                session.commit()
         session.close()
 
     # ===== OPERACIONES CRUD (Backend) =====
 
     def crear_tarea(self, titulo, descripcion="", fecha_limite=None, prioridad="media", categoria_id=None):
+        # --- VALIDACIÓN NUEVA PARA PASAR LA PRUEBA ---
+        if not titulo or titulo.strip() == "":
+            print("❌ Validación fallida: El título no puede estar vacío.")
+            return None
+
         session = self.get_session()
         try:
-            # Asignar categoría por defecto si no viene ninguna
             if not categoria_id:
                 cat_def = session.query(Categoria).first()
                 if cat_def: categoria_id = cat_def.id
@@ -120,13 +103,10 @@ class Database:
         session = self.get_session()
         try:
             query = session.query(Tarea).join(Categoria)
-            
             if categoria_filtro and categoria_filtro != "TODAS":
                 query = query.filter(Categoria.nombre == categoria_filtro)
             
             resultados = query.all()
-            
-            # Convertir a lista de diccionarios para la interfaz gráfica
             tareas_lista = []
             for t in resultados:
                 tarea_dict = {
