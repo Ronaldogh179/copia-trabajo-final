@@ -1,10 +1,10 @@
 ```mermaid
 classDiagram
-    direction TD
+    direction LR
+    %% Cambiamos a dirección Izquierda-Derecha para un diseño más equilibrado
 
     %% =========================================
     %% DIAGRAMA DE CLASES - SMARTTASK ORGANIZER
-    %% Nivel: Profesional / Ingeniería de Datos
     %% =========================================
 
     class Categoria {
@@ -31,13 +31,18 @@ classDiagram
     }
 
     %% RELACIONES
-    %% 1 Categoría tiene N Tareas (Agregación)
-    Categoria "1" o-- "0..*" Tarea : contiene
+    %% 1 Categoría -> N Tareas. Agregamos una etiqueta a la relación para mayor claridad.
+    Categoria "1" o-- "0..*" Tarea : Agrupa
 
-    %% NOTAS TÉCNICAS
-    note for Tarea "Constraints:\n1. estado IN ('pendiente', 'completada', 'vencida')\n2. prioridad IN ('baja', 'media', 'alta')"
+    %% NOTAS TÉCNICAS (Estilizada para ser profesional, no amarilla)
+    note for Tarea "🔐 Restricciones de Base de Datos:\n- estado IN ('pendiente', 'completada', 'vencida')\n- prioridad IN ('baja', 'media', 'alta')"
 
-    %% ESTILOS
-    style Categoria fill:#f0f8ff,stroke:#007bff,stroke-width:2px,color:#000
-    style Tarea fill:#f0fff4,stroke:#28a745,stroke-width:2px,color:#000
+    %% ESTILOS PROFESIONALES
+    %% Clases: Colores corporativos suaves con bordes definidos
+    style Categoria fill:#e7f5ff,stroke:#007bff,stroke-width:2px,color:#000
+    style Tarea fill:#e6ffed,stroke:#28a745,stroke-width:2px,color:#000
+    
+    %% Nota: Estilo técnico gris, elegante y serio
+    %% (Este comando interno fuerza el estilo de la nota)
+    %%{init: {'themeVariables': { 'noteBkgColor': '#f8f9fa', 'noteBorderColor': '#6c757d' }}}%%
 ```
