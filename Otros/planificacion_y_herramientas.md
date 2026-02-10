@@ -1,4 +1,5 @@
 # 📂 Documentación de Gestión y Herramientas
+> Evidencia para Competencias 11 (Gestión de Proyectos) y 14 (Herramientas Modernas)
 
 ---
 
@@ -6,7 +7,9 @@
 
 ### 11.1 Diseño del Proyecto (Propuesta Preliminar)
 **Necesidad Identificada:**
-Los estudiantes universitarios enfrentan dificultades para organizar tareas académicas dispersas, lo que ocasiona entregas tardías y estrés. **Propuesta de Solución:** Desarrollar "SmartTask Organizer", una aplicación de escritorio ligera, sin dependencia de internet, que permita gestión CRUD (Crear, Leer, Actualizar, Eliminar) de tareas con persistencia local segura.
+Los estudiantes universitarios enfrentan dificultades para organizar tareas académicas dispersas, lo que ocasiona entregas tardías y estrés.
+**Propuesta de Solución:**
+Desarrollar "SmartTask Organizer", una aplicación de escritorio ligera, sin dependencia de internet, que permita gestión CRUD (Crear, Leer, Actualizar, Eliminar) de tareas con persistencia local segura.
 
 ### 11.2 Planificación de la Gestión (Categorización de Recursos)
 Para llevar a cabo las actividades identificadas, se han categorizado los siguientes recursos:
@@ -19,12 +22,12 @@ Para llevar a cabo las actividades identificadas, se han categorizado los siguie
 | **Tiempo** | 4 Semanas | Sprints semanales: Diseño -> Desarrollo -> Testing -> Despliegue. |
 
 ### 11.3 Ejecución del Proyecto (Coordinación de Equipos)
-Se establecieron responsabilidades claras para cumplir las actividades planeadas:
+Se establecieron responsabilidades claras, asignando tareas según el perfil de cada integrante:
 
-* **Gonzales Jacinto, Simon (Team Lead & Backend):** Arquitectura de Base de Datos, lógica CRUD y coordinación general.
-* **Bendezú Lagos, Jack (Frontend):** Diseño de interfaz y experiencia de usuario (UX).
-* **Julca Laureano, Dickmar (QA & Testing):** Ejecución de pruebas unitarias y validación de errores.
-* **Reyes Cordero, Ítalo (Docs):** Documentación técnica, manual de usuario y diagramas.
+* **Gonzales Jacinto, Simon (Scrum Master & Docs):** Coordinación general del proyecto, redacción del manual de usuario y gestión del repositorio GitHub.
+* **Reyes Cordero, Ítalo (Backend Lead):** Arquitectura compleja de Base de Datos, lógica CRUD y optimización SQL.
+* **Bendezú Lagos, Jack (Frontend):** Diseño de interfaz gráfica, experiencia de usuario (UX) y conexión de eventos.
+* **Julca Laureano, Dickmar (QA & Testing):** Programación de pruebas unitarias automáticas y depuración de errores críticos.
 
 ---
 
@@ -52,5 +55,5 @@ Se identificaron y compararon herramientas apropiadas:
     * *Razón:* Permite trabajo colaborativo mediante ramas (`feature/`, `main`), evitando conflictos de código entre los 4 integrantes.
 * **Framework de Interfaz: Tkinter vs Reflex**
     * *Selección:* **Tkinter**.
-    * *Razón:* Tkinter es nativo de Python y permite generar ejecutables (.exe) que funcionan 100% offline sin dependencias web, cumpliendo el requisito de portabilidad en zonas rurales.
+    * *Razón:* Tkinter es nativo de Python y permite generar ejecutables (.exe) que funcionan 100% offline sin dependencias web, cumpliendo el requisito de portabilidad.
     * *Descartado:* **Reflex**. Se evaluó, pero se descartó porque requiere un navegador web y conexión para su despliegue óptimo, lo cual no se alineaba con la arquitectura de escritorio local.
