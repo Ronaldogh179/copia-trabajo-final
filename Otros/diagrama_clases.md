@@ -1,7 +1,7 @@
+```mermaid
 classDiagram
-    %% Diagrama de Clases del Proyecto SmartTask Organizer
-    %% Generado para la documentación técnica
-
+    %% Diagrama de Clases - SmartTask Organizer
+    
     class Categoria {
         +Integer id (PK)
         +String nombre
@@ -23,7 +23,8 @@ classDiagram
         +categoria: relationship
     }
 
-    %% Relación: Una Categoría tiene muchas Tareas (1 a N)
+    %% Relación: Una Categoría tiene muchas Tareas
     Categoria "1" --> "0..*" Tarea : contiene
     
     note for Tarea "Constraints:\n- estado IN ('pendiente', 'completada', 'vencida')\n- prioridad IN ('baja', 'media', 'alta')"
+```
